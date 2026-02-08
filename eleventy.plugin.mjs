@@ -50,7 +50,9 @@ export function getTemplateSearchPaths({ siteSrc, coreSrc } = {}) {
  */
 export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   // Make env vars available for sites that rely on process.env.*
-  dotenv.config();
+  if (opts.loadDotenv !== false) {
+    dotenv.config();
+  }
 
   const options = {
     // Site repo directories (relative to process.cwd())
@@ -60,6 +62,16 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     // Whether to run the EE build pipeline (CSS/JS bundling) from core assets.
     // You can turn this off and manage CSS/JS in your site instead.
     enableBuildPipeline: true,
+
+    // Whether core should configure template search paths for Nunjucks/Liquid.
+    // When enabled, site templates override core templates.
+    configureTemplateSearchPaths: true,
+
+    // Whether to run svgToJpeg after build when serving.
+    enableSvgToJpegOnServe: true,
+
+    // Whether to load .env inside the core plugin (can be disabled by sites).
+    loadDotenv: true,
 
     // Additional WebC component globs from the site repo.
     // Example: ['./src/_includes/webc/**/*.webc']
@@ -83,6 +95,28 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     outDir
   });
 
+  // --------------------- Template lookup paths (theme-like overrides)
+  // Configure engines that support multiple include/layout roots so that:
+  // 1) site templates win
+  // 2) core templates act as fallback
+  if (options.configureTemplateSearchPaths) {
+    const includePaths = getTemplateSearchPaths({ siteSrc, coreSrc });
+
+    // Nunjucks
+    try {
+      eleventyConfig.setNunjucksEnvironmentOptions({ includePaths });
+    } catch {
+      // ignore
+    }
+
+    // Liquid
+    try {
+      eleventyConfig.setLiquidOptions({ partials: includePaths });
+    } catch {
+      // ignore
+    }
+  }
+
   // --------------------- Events: before build
   if (options.enableBuildPipeline) {
     eleventyConfig.on('eleventy.before', async () => {
@@ -93,11 +127,14 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   }
 
   // --------------------- Watch targets
-  // Watch both site + core assets so changes trigger rebuild in dev.
-  eleventyConfig.addWatchTarget(path.join(siteSrc, 'assets/**/*.{css,js,svg,png,jpeg,webp}'));
-  eleventyConfig.addWatchTarget(path.join(coreSrc, 'assets/**/*.{css,js,svg,png,jpeg,webp}'));
-  eleventyConfig.addWatchTarget(path.join(siteSrc, '_includes/**/*.{webc}'));
-  eleventyConfig.addWatchTarget(path.join(coreSrc, '_includes/**/*.{webc}'));
+  // Use forward-slash globs for reliable cross-platform watching.
+  const toPosixPath = p => p.replaceAll('\\\\', '/');
+  const coreSrcPosix = toPosixPath(coreSrc);
+
+  eleventyConfig.addWatchTarget('./src/assets/');
+  eleventyConfig.addWatchTarget('./src/_includes/');
+  eleventyConfig.addWatchTarget(`${coreSrcPosix}/assets/`);
+  eleventyConfig.addWatchTarget(`${coreSrcPosix}/_includes/`);
 
   // --------------------- Layout aliases
   eleventyConfig.addLayoutAlias('base', 'base.njk');
@@ -161,7 +198,8 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   eleventyConfig.addShortcode('year', () => `${new Date().getFullYear()}`);
 
   // --------------------- Events: after build
-  if (process.env.ELEVENTY_RUN_MODE === 'serve') {
+  const isServe = process.argv.includes('--serve') || process.env.ELEVENTY_RUN_MODE === 'serve';
+  if (isServe && options.enableSvgToJpegOnServe) {
     eleventyConfig.on('eleventy.after', events.svgToJpeg);
   }
 
@@ -182,9 +220,9 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   // Sites can add their own passthrough rules in their eleventy config.
 
   // ---------------------- Ignore test files
-  // Core ships pa11y template under src/common. Sites can opt-in.
+  // If a consuming site includes a pa11y template under its own input dir, ignore it outside tests.
   if (process.env.ELEVENTY_ENV !== 'test') {
-    eleventyConfig.ignores.add('src/common/pa11y.njk');
+    eleventyConfig.ignores.add(`${options.siteInputDir}/common/pa11y.njk`);
   }
 
   return {
