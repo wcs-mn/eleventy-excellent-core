@@ -178,12 +178,12 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
       // Eleventy layout keys use forward slashes.
       const layoutKey = relNoExt.split(path.sep).join('/');
 
-      // IMPORTANT: Eleventy layout aliases must be template-relative, not absolute FS paths.
-      // Core layouts are discoverable via the template search paths configured above.
-      const layoutTemplate = rel.split(path.sep).join('/');
+      // Use a project-relative path so Eleventy can resolve it consistently across environments.
+      const fullPath = path.join(coreLayoutsDir, rel);
+      const projectRelativePath = path.relative(process.cwd(), fullPath).split(path.sep).join('/');
 
       try {
-        eleventyConfig.addLayoutAlias(layoutKey, layoutTemplate);
+        eleventyConfig.addLayoutAlias(layoutKey, projectRelativePath);
       } catch {
         // ignore
       }
