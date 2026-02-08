@@ -1,7 +1,8 @@
+{# Core inline JS placeholder.
+   We intentionally avoid `{% js %}` / `{% getBundle %}` and `{% include "scripts/*.js" %}` here because
+   those require shortcodes/plugins and include partials that are not guaranteed to exist in every
+   consuming site environment (e.g., Cloudflare Pages).
 
-<script>{% getBundle "js", "inline" %}</script>
-
-{%- js "inline" %} <!-- inlined for all pages -->
-{% include "scripts/is-land.js" %}
-{% include "scripts/theme-toggle.js" %}
-{% endjs %}
+   If a site needs inline JS in <head>, override this file at:
+   `src/_includes/head/js-inline.njk`
+#}
