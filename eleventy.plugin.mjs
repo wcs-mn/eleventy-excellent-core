@@ -431,7 +431,17 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   eleventyConfig.addPlugin(plugins.drafts);
   eleventyConfig.addPlugin(plugins.EleventyRenderPlugin);
   eleventyConfig.addPlugin(plugins.rss);
+
   eleventyConfig.addPlugin(plugins.syntaxHighlight);
+
+  // Bundle plugin: provides paired shortcodes like `{% js "inline" %}...{% endjs %}` and `getBundle`.
+  // WebC provides `getBundle`, but the paired `js/css/html` shortcodes come from the Bundle plugin.
+  try {
+    const BundlePlugin = (await import('@11ty/eleventy-plugin-bundle')).default;
+    eleventyConfig.addPlugin(BundlePlugin);
+  } catch {
+    // If the consuming site hasn’t installed the plugin, we fall back to non-bundle shortcodes below.
+  }
 
   // WebC: include core components + any site components
   const coreWebc = [path.join(coreSrc, '_includes/webc/**/*.webc')];
