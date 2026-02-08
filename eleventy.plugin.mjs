@@ -537,25 +537,22 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   eleventyConfig.addShortcode('imageKeys', shortcodes.imageKeysShortcode);
   eleventyConfig.addShortcode('year', () => `${new Date().getFullYear()}`);
 
-  // Paired shortcodes: prefer Eleventy bundle system when available.
-  // If bundles are unavailable, fall back to simple inline wrappers.
-  if (!supportsBundles) {
-    // `{% js %}...{% endjs %}`
-    const jsInline =
-      typeof shortcodes.jsInlineShortcode === 'function'
-        ? shortcodes.jsInlineShortcode
-        : (content) => `<script>\n${content}\n</script>`;
+  // Always provide fallback js/css paired shortcodes.
+  // Bundle plugin will override automatically if active.
 
-    eleventyConfig.addPairedShortcode('js', jsInline);
+  const jsInline =
+    typeof shortcodes.jsInlineShortcode === 'function'
+      ? shortcodes.jsInlineShortcode
+      : (content) => `<script>\n${content}\n</script>`;
 
-    // `{% css %}...{% endcss %}`
-    const cssInline =
-      typeof shortcodes.cssInlineShortcode === 'function'
-        ? shortcodes.cssInlineShortcode
-        : (content) => `<style>\n${content}\n</style>`;
+  eleventyConfig.addPairedShortcode('js', jsInline);
 
-    eleventyConfig.addPairedShortcode('css', cssInline);
-  }
+  const cssInline =
+    typeof shortcodes.cssInlineShortcode === 'function'
+      ? shortcodes.cssInlineShortcode
+      : (content) => `<style>\n${content}\n</style>`;
+
+  eleventyConfig.addPairedShortcode('css', cssInline);
 
   // `{% raw %}...{% endraw %}` passthrough helper for template migrations.
   eleventyConfig.addPairedShortcode('raw', (content) => content);
