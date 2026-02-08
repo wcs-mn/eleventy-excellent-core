@@ -153,6 +153,42 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     outDir
   });
 
+  // --------------------- Template helpers
+  // Core templates may reference `helpers.*` (e.g., `helpers["random"]`).
+  // Expose a small, stable helpers namespace globally so consuming sites don't have to.
+  const helpers = {
+    random: (arr) => {
+      if (!Array.isArray(arr) || arr.length === 0) return null;
+      return arr[Math.floor(Math.random() * arr.length)];
+    },
+
+    shuffle: (arr) => {
+      if (!Array.isArray(arr)) return [];
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    },
+
+    nowIso: () => new Date().toISOString(),
+    year: () => new Date().getFullYear(),
+  };
+
+  eleventyConfig.addGlobalData('helpers', helpers);
+
+  // Also register helpers as Nunjucks globals where supported (optional convenience).
+  try {
+    for (const [key, fn] of Object.entries(helpers)) {
+      if (typeof fn === 'function') {
+        eleventyConfig.addNunjucksGlobal(key, fn);
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   // --------------------- Template lookup paths (theme-like overrides)
   // Configure engines that support multiple include/layout roots so that:
   // 1) site templates win
