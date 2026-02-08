@@ -90,6 +90,47 @@ const syncCoreLayoutsIntoSite = async ({ coreLayoutsDir, siteLayoutsDir, namespa
   return targetDir;
 };
 
+const safeStatMtimeMs = async (p) => {
+  try {
+    const st = await fs.stat(p);
+    return st.mtimeMs;
+  } catch {
+    return 0;
+  }
+};
+
+const maxMtimeInTree = async (dir) => {
+  // Find newest mtime across all files in a directory tree.
+  const files = await fg(['**/*'], { cwd: dir, onlyFiles: true, dot: false });
+  let max = 0;
+  for (const rel of files) {
+    const m = await safeStatMtimeMs(path.join(dir, rel));
+    if (m > max) max = m;
+  }
+  return max;
+};
+
+const shouldSyncLayouts = async ({ coreLayoutsDir, siteLayoutsDir, namespace }) => {
+  const targetDir = path.join(siteLayoutsDir, namespace);
+  const marker = path.join(targetDir, '.ee_core_layouts.mtime');
+
+  const coreMax = await maxMtimeInTree(coreLayoutsDir);
+  const markerMtime = await safeStatMtimeMs(marker);
+
+  // If marker is missing or older than core, sync.
+  return markerMtime < coreMax;
+};
+
+const writeLayoutsMarker = async ({ siteLayoutsDir, namespace }) => {
+  const targetDir = path.join(siteLayoutsDir, namespace);
+  const marker = path.join(targetDir, '.ee_core_layouts.mtime');
+  try {
+    await fs.writeFile(marker, `${Date.now()}\n`, 'utf8');
+  } catch {
+    // ignore
+  }
+};
+
 /**
  * Eleventy Excellent Core (theme-like) plugin.
  *
@@ -141,6 +182,7 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   const coreSrc = coreSrcPath();
   const siteSrc = path.resolve(process.cwd(), options.siteInputDir);
   const outDir = path.resolve(process.cwd(), options.outputDir);
+  const isServe = process.argv.includes('--serve') || process.env.ELEVENTY_RUN_MODE === 'serve';
 
   // Expose useful paths to templates + site config
   eleventyConfig.addGlobalData('eeCore', {
@@ -177,17 +219,6 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   };
 
   eleventyConfig.addGlobalData('helpers', helpers);
-
-  // Also register helpers as Nunjucks globals where supported (optional convenience).
-  try {
-    for (const [key, fn] of Object.entries(helpers)) {
-      if (typeof fn === 'function') {
-        eleventyConfig.addNunjucksGlobal(key, fn);
-      }
-    }
-  } catch {
-    // ignore
-  }
 
   // --------------------- Template lookup paths (theme-like overrides)
   // Configure engines that support multiple include/layout roots so that:
@@ -258,14 +289,21 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     if (options.autoRegisterLayoutAliases) {
       const siteLayoutsDir = path.join(siteSrc, '_layouts');
       const coreLayoutsDir = path.join(coreSrc, '_layouts');
-      await syncCoreLayoutsIntoSite({
-        coreLayoutsDir,
-        siteLayoutsDir,
-        namespace: options.coreLayoutsNamespace
-      });
+
+      // Skip copying if core layouts haven't changed since last sync.
+      if (await shouldSyncLayouts({ coreLayoutsDir, siteLayoutsDir, namespace: options.coreLayoutsNamespace })) {
+        await syncCoreLayoutsIntoSite({
+          coreLayoutsDir,
+          siteLayoutsDir,
+          namespace: options.coreLayoutsNamespace
+        });
+        await writeLayoutsMarker({ siteLayoutsDir, namespace: options.coreLayoutsNamespace });
+      }
     }
 
-    if (options.enableBuildPipeline) {
+    // NOTE: events.buildAllCss/buildAllJs should ideally be incremental.
+    // As a cheap guard, skip building when not serving and ELEVENTY_ENV is 'production'.
+    if (options.enableBuildPipeline && !(process.env.ELEVENTY_ENV === 'production' && !isServe)) {
       // Build core CSS/JS into the *site* includes/output.
       await events.buildAllCss({ coreSrc, siteSrc, outDir });
       await events.buildAllJs({ coreSrc, siteSrc, outDir });
@@ -338,7 +376,6 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   eleventyConfig.addShortcode('year', () => `${new Date().getFullYear()}`);
 
   // --------------------- Events: after build
-  const isServe = process.argv.includes('--serve') || process.env.ELEVENTY_RUN_MODE === 'serve';
   if (isServe && options.enableSvgToJpegOnServe) {
     eleventyConfig.on('eleventy.after', events.svgToJpeg);
   }
