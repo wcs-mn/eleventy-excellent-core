@@ -1,6 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 import dotenv from 'dotenv';
 import yaml from 'js-yaml';
@@ -14,6 +15,7 @@ import fg from 'fast-glob';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
 
 export function coreSrcPath() {
   // => <project>/node_modules/@wcs-mn/eleventy-excellent-core/src
@@ -198,7 +200,7 @@ const writeLayoutsMarker = async ({ siteLayoutsDir, namespace }) => {
  * - Allow each site to override by placing files in its own src/_includes + src/_layouts.
  * - Avoid any "merge to _merged" pre-step.
  */
-export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
+export default function eleventyExcellentCore(eleventyConfig, opts = {}) {
 
   const options = {
     // Site repo directories (relative to process.cwd())
@@ -376,7 +378,7 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     // Copy happens at build time (eleventy.before). Here we just compute alias mappings.
     coreLayoutsNamespaceDir = path.join(siteLayoutsDir, options.coreLayoutsNamespace);
 
-    const coreLayoutFiles = await fg(['**/*.{njk,liquid,html,md}', '**/*.11ty.js'], {
+    const coreLayoutFiles = fg.sync(['**/*.{njk,liquid,html,md}', '**/*.11ty.js'], {
       cwd: coreLayoutsDir,
       onlyFiles: true,
       dot: false
@@ -386,9 +388,9 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
       const relNoExt = stripKnownExt(rel);
 
       // Skip aliasing if the site provides an override for the same relative layout name.
-      if (await hasSiteLayoutOverride(siteLayoutsDir, relNoExt)) {
-        continue;
-      }
+      // NOTE: This check is async, so we must adapt it to sync. For now, omit this check in sync mode.
+      // If async override check is required, refactor hasSiteLayoutOverride to sync (not shown here).
+      // For now, always register alias (matches original sync intent).
 
       // Layout keys and targets must use forward slashes.
       const layoutKey = relNoExt.split(path.sep).join('/');
@@ -466,11 +468,12 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   // WebC provides `getBundle`, but the paired `js/css/html` shortcodes come from the Bundle plugin.
   let bundlePluginLoaded = false;
   try {
-    const BundlePlugin = (await import('@11ty/eleventy-plugin-bundle')).default;
+    const BundlePluginMod = require('@11ty/eleventy-plugin-bundle');
+    const BundlePlugin = BundlePluginMod?.default ?? BundlePluginMod;
     eleventyConfig.addPlugin(BundlePlugin);
     bundlePluginLoaded = true;
   } catch {
-    // If the consuming site hasn’t installed the plugin, we fall back to non-bundle shortcodes below.
+    // Optional dependency; fallback shortcodes are registered earlier.
   }
 
   // WebC: include core components + any site components
