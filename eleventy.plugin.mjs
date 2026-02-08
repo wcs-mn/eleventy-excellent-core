@@ -450,6 +450,15 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   eleventyConfig.addShortcode('imageKeys', shortcodes.imageKeysShortcode);
   eleventyConfig.addShortcode('year', () => `${new Date().getFullYear()}`);
 
+  // Paired shortcode used by core templates: `{% js %}...{% endjs %}`
+  // Use the core implementation if provided; otherwise, fall back to a simple inline <script> wrapper.
+  const jsInline =
+    typeof shortcodes.jsInlineShortcode === 'function'
+      ? shortcodes.jsInlineShortcode
+      : (content) => `<script>\n${content}\n</script>`;
+
+  eleventyConfig.addPairedShortcode('js', jsInline);
+
   // --------------------- Events: after build
   if (isServe && options.enableSvgToJpegOnServe) {
     eleventyConfig.on('eleventy.after', events.svgToJpeg);
