@@ -90,6 +90,65 @@ const syncCoreLayoutsIntoSite = async ({ coreLayoutsDir, siteLayoutsDir, namespa
   return targetDir;
 };
 
+const readJsonIfExists = async (p, fallback) => {
+  try {
+    const raw = await fs.readFile(p, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+};
+
+const writeJson = async (p, value) => {
+  await fs.mkdir(path.dirname(p), { recursive: true });
+  await fs.writeFile(p, JSON.stringify(value, null, 2) + '\n', 'utf8');
+};
+
+const syncCoreIncludesIntoSite = async ({ coreIncludesDir, siteIncludesDir }) => {
+  // Track generated files so we can remove stale ones later.
+  const manifestPath = path.join(siteIncludesDir, '.ee_core_includes.manifest.json');
+
+  const prevManifest = await readJsonIfExists(manifestPath, []);
+  const prevSet = new Set(Array.isArray(prevManifest) ? prevManifest : []);
+
+  const coreFiles = await fg(['**/*'], {
+    cwd: coreIncludesDir,
+    onlyFiles: true,
+    dot: false
+  });
+  const coreSet = new Set(coreFiles);
+
+  // Remove stale generated files that no longer exist in core.
+  for (const rel of prevSet) {
+    if (coreSet.has(rel)) continue;
+    const target = path.join(siteIncludesDir, rel);
+    try {
+      await fs.rm(target, { force: true });
+    } catch {
+      // ignore
+    }
+  }
+
+  const nextManifest = [];
+
+  // Copy core includes into site includes, but never overwrite existing site files.
+  for (const rel of coreFiles) {
+    const target = path.join(siteIncludesDir, rel);
+    const source = path.join(coreIncludesDir, rel);
+
+    // If the site already has this include, treat it as an override and do not overwrite.
+    if (await fileExists(target)) {
+      continue;
+    }
+
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.cp(source, target);
+    nextManifest.push(rel);
+  }
+
+  await writeJson(manifestPath, nextManifest);
+};
+
 const safeStatMtimeMs = async (p) => {
   try {
     const st = await fs.stat(p);
@@ -157,6 +216,11 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     // Whether core should configure template search paths for Nunjucks/Liquid.
     // When enabled, site templates override core templates.
     configureTemplateSearchPaths: true,
+
+    // Ensure core includes exist inside the consuming site's includes directory.
+    // This avoids relying on engine-specific include path configuration and fixes
+    // "template not found" issues when core layouts include core partials.
+    syncCoreIncludesIntoSite: true,
 
     // Automatically register layout aliases for layouts shipped by the core package.
     // This lets consuming sites use `layout: <name>` without extra Eleventy config.
@@ -285,6 +349,16 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
 
   // --------------------- Events: before build
   eleventyConfig.on('eleventy.before', async () => {
+    // Ensure core includes are available inside the site's includes directory.
+    // This is the most reliable way for Nunjucks/Liquid to resolve includes
+    // referenced by core layouts.
+    if (options.syncCoreIncludesIntoSite) {
+      const siteIncludesDir = path.join(siteSrc, '_includes');
+      const coreIncludesDir = path.join(coreSrc, '_includes');
+      await fs.mkdir(siteIncludesDir, { recursive: true });
+      await syncCoreIncludesIntoSite({ coreIncludesDir, siteIncludesDir });
+    }
+
     // Keep core layouts in sync inside the consuming site's layouts directory.
     if (options.autoRegisterLayoutAliases) {
       const siteLayoutsDir = path.join(siteSrc, '_layouts');
