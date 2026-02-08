@@ -7,7 +7,8 @@
   "exports": {
     ".": "./index.mjs",
     "./plugin": "./eleventy.plugin.mjs",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./tailwind-preset": "./tailwind.preset.cjs"
   },
   "files": [
     "src/**",
