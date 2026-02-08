@@ -454,7 +454,16 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   });
 
   // --------------------- Bundle
-  eleventyConfig.addBundle('css', { hoist: true });
+  // Eleventy v3 bundle system provides `{% css %}`, `{% js %}` paired shortcodes and `getBundle`.
+  // Core templates use `{% js "inline" %}` and `{% getBundle "js", "inline" %}`.
+  let supportsBundles = false;
+  try {
+    eleventyConfig.addBundle('css', { hoist: true });
+    eleventyConfig.addBundle('js', { hoist: true });
+    supportsBundles = true;
+  } catch {
+    // ignore
+  }
 
   // --------------------- Library and Data
   eleventyConfig.setLibrary('md', plugins.markdownLib);
@@ -518,23 +527,25 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   eleventyConfig.addShortcode('imageKeys', shortcodes.imageKeysShortcode);
   eleventyConfig.addShortcode('year', () => `${new Date().getFullYear()}`);
 
-  // Paired shortcode used by core templates: `{% js %}...{% endjs %}`
-  // Use the core implementation if provided; otherwise, fall back to a simple inline <script> wrapper.
-  const jsInline =
-    typeof shortcodes.jsInlineShortcode === 'function'
-      ? shortcodes.jsInlineShortcode
-      : (content) => `<script>\n${content}\n</script>`;
+  // Paired shortcodes: prefer Eleventy bundle system when available.
+  // If bundles are unavailable, fall back to simple inline wrappers.
+  if (!supportsBundles) {
+    // `{% js %}...{% endjs %}`
+    const jsInline =
+      typeof shortcodes.jsInlineShortcode === 'function'
+        ? shortcodes.jsInlineShortcode
+        : (content) => `<script>\n${content}\n</script>`;
 
-  eleventyConfig.addPairedShortcode('js', jsInline);
+    eleventyConfig.addPairedShortcode('js', jsInline);
 
-  // --------------------- EE legacy paired shortcodes (compat)
-  // `{% css %}...{% endcss %}` is used by some EE templates.
-  const cssInline =
-    typeof shortcodes.cssInlineShortcode === 'function'
-      ? shortcodes.cssInlineShortcode
-      : (content) => `<style>\n${content}\n</style>`;
+    // `{% css %}...{% endcss %}`
+    const cssInline =
+      typeof shortcodes.cssInlineShortcode === 'function'
+        ? shortcodes.cssInlineShortcode
+        : (content) => `<style>\n${content}\n</style>`;
 
-  eleventyConfig.addPairedShortcode('css', cssInline);
+    eleventyConfig.addPairedShortcode('css', cssInline);
+  }
 
   // `{% raw %}...{% endraw %}` passthrough helper for template migrations.
   eleventyConfig.addPairedShortcode('raw', (content) => content);
