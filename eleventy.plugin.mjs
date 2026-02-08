@@ -284,6 +284,33 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
 
   eleventyConfig.addGlobalData('helpers', helpers);
 
+  // --------------------- EE compatibility helpers
+  // Register legacy filter/shortcode names safely so builds don't fail when templates
+  // reference older Eleventy Excellent APIs.
+  const tryAddFilter = (name, fn) => {
+    try {
+      if (typeof fn === 'function') eleventyConfig.addFilter(name, fn);
+    } catch {
+      // ignore
+    }
+  };
+
+  const tryAddShortcode = (name, fn) => {
+    try {
+      if (typeof fn === 'function') eleventyConfig.addShortcode(name, fn);
+    } catch {
+      // ignore
+    }
+  };
+
+  const tryAddPairedShortcode = (name, fn) => {
+    try {
+      if (typeof fn === 'function') eleventyConfig.addPairedShortcode(name, fn);
+    } catch {
+      // ignore
+    }
+  };
+
   // --------------------- Template lookup paths (theme-like overrides)
   // Configure engines that support multiple include/layout roots so that:
   // 1) site templates win
@@ -445,6 +472,46 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   eleventyConfig.addFilter('alphabetic', filters.sortAlphabetically);
   eleventyConfig.addFilter('slugify', filters.slugifyString);
 
+  // --------------------- EE legacy filter aliases (compat)
+  // Common Eleventy Excellent template expectations.
+  // Prefer core implementations when present; otherwise provide safe fallbacks.
+  tryAddFilter('readableDate', filters.formatDate);
+  tryAddFilter('htmlDateString', filters.toISOString);
+
+  // Frequently used utility filters in EE-style templates
+  tryAddFilter('head', (arr, n) => {
+    if (!Array.isArray(arr)) return [];
+    const count = typeof n === 'number' ? n : parseInt(n, 10);
+    if (!Number.isFinite(count)) return arr;
+    return arr.slice(0, count);
+  });
+
+  tryAddFilter('min', (...nums) => {
+    const flat = nums.flat().map(Number).filter((x) => Number.isFinite(x));
+    return flat.length ? Math.min(...flat) : 0;
+  });
+
+  tryAddFilter('max', (...nums) => {
+    const flat = nums.flat().map(Number).filter((x) => Number.isFinite(x));
+    return flat.length ? Math.max(...flat) : 0;
+  });
+
+  // Date helpers used in some EE forks
+  tryAddFilter('getNewestCollectionItemDate', (collection = []) => {
+    if (!Array.isArray(collection) || collection.length === 0) return new Date(0);
+    const dates = collection
+      .map((item) => item && item.date)
+      .filter((d) => d)
+      .map((d) => new Date(d))
+      .filter((d) => !Number.isNaN(d.getTime()));
+    if (dates.length === 0) return new Date(0);
+    return new Date(Math.max(...dates.map((d) => d.getTime())));
+  });
+
+  // Some templates reference `url` / `safe` style filters; keep them no-ops.
+  tryAddFilter('url', (v) => v);
+  tryAddFilter('safe', (v) => v);
+
   // --------------------- Shortcodes
   eleventyConfig.addShortcode('svg', shortcodes.svgShortcode);
   eleventyConfig.addShortcode('image', shortcodes.imageShortcode);
@@ -459,6 +526,22 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
       : (content) => `<script>\n${content}\n</script>`;
 
   eleventyConfig.addPairedShortcode('js', jsInline);
+
+  // --------------------- EE legacy paired shortcodes (compat)
+  // `{% css %}...{% endcss %}` is used by some EE templates.
+  const cssInline =
+    typeof shortcodes.cssInlineShortcode === 'function'
+      ? shortcodes.cssInlineShortcode
+      : (content) => `<style>\n${content}\n</style>`;
+
+  eleventyConfig.addPairedShortcode('css', cssInline);
+
+  // `{% raw %}...{% endraw %}` passthrough helper for template migrations.
+  eleventyConfig.addPairedShortcode('raw', (content) => content);
+
+  // Legacy: allow calling helpers directly as shortcodes (rare, but harmless)
+  tryAddShortcode('nowIso', helpers.nowIso);
+  tryAddShortcode('yearNumber', helpers.year);
 
   // --------------------- Events: after build
   if (isServe && options.enableSvgToJpegOnServe) {
