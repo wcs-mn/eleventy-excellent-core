@@ -434,7 +434,7 @@ export default function eleventyExcellentCore(eleventyConfig, opts = {}) {
 
     // NOTE: events.buildAllCss/buildAllJs should ideally be incremental.
     // As a cheap guard, skip building when not serving and ELEVENTY_ENV is 'production'.
-    if (options.enableBuildPipeline && !(process.env.ELEVENTY_ENV === 'production' && !isServe)) {
+    if (options.enableBuildPipeline) {
       // Build core CSS/JS into the *site* includes/output.
       await events.buildAllCss({ coreSrc, siteSrc, outDir });
       await events.buildAllJs({ coreSrc, siteSrc, outDir });

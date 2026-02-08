@@ -61,7 +61,7 @@ export const buildAllCss = async (opts) => {
   tasks.push(
     buildCss(
       path.join(coreAssetsCss, 'global', 'global.css'),
-      [path.join(siteSrc, '_includes', 'css', 'global.css')],
+      [path.join(siteSrc, '_includes', 'css', 'global.css'), path.join(outDir, 'assets', 'core', 'css', 'global.css')],
       tailwindConfigPath
     )
   );
@@ -70,7 +70,7 @@ export const buildAllCss = async (opts) => {
   const localCssFiles = await fg([path.join(coreAssetsCss, 'local', '**/*.css')]);
   for (const inputPath of localCssFiles) {
     const baseName = path.basename(inputPath);
-    tasks.push(buildCss(inputPath, [path.join(siteSrc, '_includes', 'css', baseName)], tailwindConfigPath));
+    tasks.push(buildCss(inputPath, [path.join(siteSrc, '_includes', 'css', baseName), path.join(outDir, 'assets', 'core', 'css', 'local', baseName)], tailwindConfigPath));
   }
 
   // Component CSS -> site output (static asset)

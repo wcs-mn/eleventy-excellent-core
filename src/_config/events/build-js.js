@@ -37,8 +37,10 @@ export const buildAllJs = async ({ coreSrc, siteSrc, outDir }) => {
   const inlineBundleFiles = await fg([path.join(coreAssetsScripts, 'bundle', '**/*.js')]);
   for (const inputPath of inlineBundleFiles) {
     const baseName = path.basename(inputPath);
-    const outputPath = path.join(siteSrc, '_includes', 'scripts', baseName);
-    tasks.push(buildJs(inputPath, outputPath));
+    const includeOutPath = path.join(siteSrc, '_includes', 'scripts', baseName);
+    const assetOutPath = path.join(outDir, 'assets', 'core', 'scripts', baseName);
+    tasks.push(buildJs(inputPath, includeOutPath));
+    tasks.push(buildJs(inputPath, assetOutPath));
   }
 
   // Component JS -> site output (static asset)
