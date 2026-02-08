@@ -25,6 +25,22 @@ export function corePaths() {
 }
 
 /**
+ * Returns template search paths for engines that support multiple include/layout roots.
+ * Order matters: site paths first so they override core.
+ */
+export function getTemplateSearchPaths({ siteSrc, coreSrc } = {}) {
+  const resolvedSiteSrc = siteSrc ? path.resolve(siteSrc) : path.resolve(process.cwd(), 'src');
+  const resolvedCoreSrc = coreSrc ? path.resolve(coreSrc) : coreSrcPath();
+
+  return [
+    path.join(resolvedSiteSrc, '_includes'),
+    path.join(resolvedSiteSrc, '_layouts'),
+    path.join(resolvedCoreSrc, '_includes'),
+    path.join(resolvedCoreSrc, '_layouts')
+  ];
+}
+
+/**
  * Eleventy Excellent Core (theme-like) plugin.
  *
  * Goals:
