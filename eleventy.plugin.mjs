@@ -1,4 +1,5 @@
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import dotenv from 'dotenv';
@@ -9,6 +10,7 @@ import events from './src/_config/events.js';
 import filters from './src/_config/filters.js';
 import plugins from './src/_config/plugins.js';
 import shortcodes from './src/_config/shortcodes.js';
+import fg from 'fast-glob';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +42,35 @@ export function getTemplateSearchPaths({ siteSrc, coreSrc } = {}) {
   ];
 }
 
+const stripKnownExt = (p) => {
+  // Handle .11ty.js first
+  if (p.endsWith('.11ty.js')) return p.slice(0, -'.11ty.js'.length);
+  return p.replace(/\.(njk|liquid|html|md)$/i, '');
+};
+
+const fileExists = async (p) => {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const hasSiteLayoutOverride = async (siteLayoutsDir, relNoExt) => {
+  const candidates = [
+    `${relNoExt}.njk`,
+    `${relNoExt}.liquid`,
+    `${relNoExt}.html`,
+    `${relNoExt}.md`,
+    `${relNoExt}.11ty.js`
+  ];
+  for (const rel of candidates) {
+    if (await fileExists(path.join(siteLayoutsDir, rel))) return true;
+  }
+  return false;
+};
+
 /**
  * Eleventy Excellent Core (theme-like) plugin.
  *
@@ -66,6 +97,10 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     // Whether core should configure template search paths for Nunjucks/Liquid.
     // When enabled, site templates override core templates.
     configureTemplateSearchPaths: true,
+
+    // Automatically register layout aliases for layouts shipped by the core package.
+    // This lets consuming sites use `layout: <name>` without extra Eleventy config.
+    autoRegisterLayoutAliases: true,
 
     // Whether to run svgToJpeg after build when serving.
     enableSvgToJpegOnServe: true,
@@ -117,6 +152,41 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     }
   }
 
+  // --------------------- Layout aliases (theme-like layouts)
+  // Eleventy layout resolution does not use Nunjucks/Liquid includePaths.
+  // Register aliases so `layout: <name>` works with core-provided layouts.
+  // Site overrides (src/_layouts/...) take precedence: if a site defines a matching layout,
+  // we do not alias that key to core.
+  if (options.autoRegisterLayoutAliases) {
+    const siteLayoutsDir = path.join(siteSrc, '_layouts');
+    const coreLayoutsDir = path.join(coreSrc, '_layouts');
+
+    const coreLayoutFiles = await fg(['**/*.{njk,liquid,html,md}', '**/*.11ty.js'], {
+      cwd: coreLayoutsDir,
+      onlyFiles: true,
+      dot: false
+    });
+
+    for (const rel of coreLayoutFiles) {
+      const relNoExt = stripKnownExt(rel);
+
+      // Skip aliasing if the site provides an override for the same relative layout name.
+      if (await hasSiteLayoutOverride(siteLayoutsDir, relNoExt)) {
+        continue;
+      }
+
+      // Eleventy layout keys use forward slashes.
+      const layoutKey = relNoExt.split(path.sep).join('/');
+      const fullPath = path.join(coreLayoutsDir, rel);
+
+      try {
+        eleventyConfig.addLayoutAlias(layoutKey, fullPath);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   // --------------------- Events: before build
   if (options.enableBuildPipeline) {
     eleventyConfig.on('eleventy.before', async () => {
@@ -135,12 +205,6 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   eleventyConfig.addWatchTarget('./src/_includes/');
   eleventyConfig.addWatchTarget(`${coreSrcPosix}/assets/`);
   eleventyConfig.addWatchTarget(`${coreSrcPosix}/_includes/`);
-
-  // --------------------- Layout aliases
-  eleventyConfig.addLayoutAlias('base', 'base.njk');
-  eleventyConfig.addLayoutAlias('page', 'page.njk');
-  eleventyConfig.addLayoutAlias('post', 'post.njk');
-  eleventyConfig.addLayoutAlias('tags', 'tags.njk');
 
   // --------------------- Collections
   eleventyConfig.addCollection('allPosts', getAllPosts);
