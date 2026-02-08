@@ -1,0 +1,21 @@
+{
+  "name": "@kaiano/eleventy-core",
+  "version": "0.1.0",
+  "description": "Shared Eleventy Excellent-based core (layouts, includes, assets, config) for Kaiano's sites.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.mjs",
+    "./scripts/prepare-core.mjs": "./scripts/prepare-core.mjs"
+  },
+  "files": [
+    "src",
+    "index.mjs",
+    "scripts/prepare-core.mjs",
+    "LICENSE.MD",
+    "readme.md"
+  ],
+  "peerDependencies": {
+    "@11ty/eleventy": "^2.0.0"
+  }
+}
