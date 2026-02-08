@@ -14,6 +14,7 @@
     "src/**",
     "index.mjs",
     "eleventy.plugin.mjs",
+    "tailwind.preset.cjs",
     "LICENSE.MD",
     "README.md"
   ],
