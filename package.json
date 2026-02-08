@@ -1,21 +1,42 @@
 {
   "name": "@wcs-mn/eleventy-excellent-core",
   "version": "0.1.0",
-  "description": "Shared Eleventy Excellent-based core (layouts, includes, assets, config) for Kaiano's sites.",
+  "description": "Shared Eleventy Excellent core packaged as an Eleventy plugin (theme-like overrides via template search paths).",
+  "license": "ISC",
   "type": "module",
-  "license": "MIT",
   "exports": {
     ".": "./index.mjs",
-    "./scripts/prepare-core.mjs": "./scripts/prepare-core.mjs"
+    "./plugin": "./eleventy.plugin.mjs",
+    "./package.json": "./package.json"
   },
   "files": [
-    "src",
+    "src/**",
     "index.mjs",
-    "scripts/prepare-core.mjs",
+    "eleventy.plugin.mjs",
     "LICENSE.MD",
-    "readme.md"
+    "README.md"
   ],
   "peerDependencies": {
-    "@11ty/eleventy": "^2.0.0"
+    "@11ty/eleventy": "^3.1.0",
+    "@11ty/eleventy-fetch": "^5.1.0",
+    "@11ty/eleventy-img": "^6.0.0",
+    "@11ty/eleventy-plugin-rss": "^2.0.0",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0",
+    "@11ty/eleventy-plugin-webc": "^0.11.0",
+    "@11ty/is-land": "^4.0.0",
+    "autoprefixer": "^10.4.0",
+    "cssnano": "^7.0.0",
+    "dotenv": "^17.0.0",
+    "esbuild": "^0.27.0",
+    "fast-glob": "^3.3.0",
+    "js-yaml": "^4.1.0",
+    "lite-youtube-embed": "^0.3.0",
+    "markdown-it": "^14.0.0",
+    "postcss": "^8.5.0",
+    "postcss-cli": "^11.0.0",
+    "postcss-import": "^16.0.0",
+    "postcss-import-ext-glob": "^2.1.0",
+    "sharp": "^0.34.0",
+    "tailwindcss": "^3.4.0"
   }
 }

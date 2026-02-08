@@ -1,38 +1,118 @@
 # @wcs-mn/eleventy-excellent-core
 
-This package is a shared "core layer" based on Eleventy Excellent. It contains:
-- `src/_includes`, `src/_layouts`
-- `src/assets`, `src/common`
-- `src/_config`, `src/_data`
+This package turns **Eleventy Excellent (Plus)** into a reusable, theme-like **core** layer for multiple Eleventy sites.
 
-It is designed to be used by multiple sites with **site-specific overrides**.
+## Goals
 
-## How sites use this core
+- Keep **shared** layouts/includes/assets/config in one place.
+- Allow each site to keep **site-only content and widgets** separate.
+- Let sites **override** core includes/layouts by simply providing a file with the same relative path.
+- Avoid a prebuild “merge” step (no `_merged` / `_core`).
 
-In a consuming site repo:
+## Install
 
-1) Install the package (from npm, GitHub, or a workspace):
-   - npm: `npm i @wcs-mn/eleventy-excellent-core`
-   - GitHub: `npm i github:wcs-mn/eleventy-excellent-core`
-   - workspace: `npm i ../path/to/wcs-mn-eleventy-excellent-core`
+From GitHub:
 
-2) Add a site layer folder:
-   - `src/site/_includes` (optional overrides/additions)
-   - `src/site/_layouts`  (optional overrides/additions)
-   - `src/site/assets/...` (site-only widgets/scripts/styles)
+```bash
+npm i github:wcs-mn/eleventy-excellent-core
+```
 
-3) Run the prepare step before Eleventy:
-   - `node ./node_modules/@wcs-mn/eleventy-excellent-core/scripts/prepare-core.mjs`
+(Recommended for stability once you’re ready: pin to a tag, e.g. `#v0.1.0`.)
 
-This generates:
-- `src/_core/*`   (a copy of the package’s `src`)
-- `src/_merged/*` (Eleventy-facing includes/layouts, with site overrides winning)
+## Use in a site
 
-Your Eleventy config should point includes/layouts at `src/_merged`.
+In your site’s `eleventy.config.mjs`:
 
-## Why this design?
+```js
+import path from 'node:path';
+import eleventyExcellentCore, { corePaths, getTemplateSearchPaths } from '@wcs-mn/eleventy-excellent-core';
 
-Eleventy does not support multiple includes/layout directories. The prepare step gives you:
-- A deterministic merge order (core first, then site)
-- A single includes/layouts directory for Eleventy
-- No risk of site-only widgets creeping into core
+export default function(eleventyConfig) {
+  // Mount the core plugin (filters/shortcodes/plugins, passthrough copy, build pipeline hooks)
+  eleventyConfig.addPlugin(eleventyExcellentCore, {
+    // Defaults shown; override if your site uses different dirs
+    siteInputDir: 'src',
+    outDir: 'dist',
+
+    // If you want core to run the css/js build pipeline on `eleventy.before`:
+    enableBuildPipeline: true,
+
+    // Add site WebC components in addition to core WebC components
+    siteWebcComponents: ['./src/_includes/webc/**/*.webc']
+  });
+
+  // Theme-like lookup: site first, then core
+  const searchPaths = getTemplateSearchPaths({
+    siteSrc: path.resolve('src'),
+    coreSrc: corePaths()
+  });
+
+  eleventyConfig.setNunjucksEnvironmentOptions({
+    includePaths: searchPaths
+  });
+
+  eleventyConfig.setLiquidOptions({
+    partials: searchPaths
+  });
+
+  // Site-only passthrough assets (widgets, images, etc.)
+  eleventyConfig.addPassthroughCopy({ 'src/assets': 'assets' });
+
+  return {
+    dir: {
+      input: 'src',
+      output: 'dist',
+      includes: '_includes',
+      layouts: '_layouts'
+    },
+    markdownTemplateEngine: 'njk'
+  };
+}
+```
+
+## Override behavior
+
+If core provides:
+
+- `src/_includes/partials/nav.njk`
+
+and your site adds:
+
+- `src/_includes/partials/nav.njk`
+
+Then your **site version wins**, without copying anything out of `node_modules`.
+
+## Site-specific widgets
+
+Keep widgets in the site repo only, e.g.:
+
+```
+src/assets/scripts/widgets/kaianolevine/...
+```
+
+In core layouts, inject widgets based on site data (recommended):
+
+`src/_data/site.js` in the site repo:
+
+```js
+export default {
+  widgetScripts: [
+    '/assets/scripts/widgets/kaianolevine/spotify-playlists.js'
+  ]
+};
+```
+
+Then in a core layout (Nunjucks):
+
+```njk
+{% if site.widgetScripts %}
+  {% for src in site.widgetScripts %}
+    <script type="module" src="{{ src }}"></script>
+  {% endfor %}
+{% endif %}
+```
+
+## Notes
+
+- This core package includes the original Eleventy Excellent build pipeline (CSS/JS bundling) but rewritten to support running from `node_modules`.
+- Your site can disable the build pipeline (`enableBuildPipeline: false`) and manage assets any other way.

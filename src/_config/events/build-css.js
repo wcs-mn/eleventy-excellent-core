@@ -17,31 +17,47 @@ const buildCss = async (inputPath, outputPaths) => {
     tailwindcss,
     autoprefixer,
     cssnano
-  ]).process(inputContent, {from: inputPath});
+  ]).process(inputContent, { from: inputPath });
 
   for (const outputPath of outputPaths) {
-    await fs.mkdir(path.dirname(outputPath), {recursive: true});
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, result.css);
   }
 
   return result.css;
 };
 
-export const buildAllCss = async () => {
+/**
+ * Build CSS from the core package into the consuming site's generated folders.
+ *
+ * @param {{coreSrc: string, siteSrc: string, outDir: string}} opts
+ */
+export const buildAllCss = async (opts) => {
+  const { coreSrc, siteSrc, outDir } = opts;
   const tasks = [];
 
-  tasks.push(buildCss('src/assets/css/global/global.css', ['src/_includes/css/global.css']));
+  const coreAssetsCss = path.join(coreSrc, 'assets', 'css');
 
-  const localCssFiles = await fg(['src/assets/css/local/**/*.css']);
+  // Global CSS -> site includes (inline bundle)
+  tasks.push(
+    buildCss(
+      path.join(coreAssetsCss, 'global', 'global.css'),
+      [path.join(siteSrc, '_includes', 'css', 'global.css')]
+    )
+  );
+
+  // Local CSS -> site includes (inline bundle)
+  const localCssFiles = await fg([path.join(coreAssetsCss, 'local', '**/*.css')]);
   for (const inputPath of localCssFiles) {
     const baseName = path.basename(inputPath);
-    tasks.push(buildCss(inputPath, [`src/_includes/css/${baseName}`]));
+    tasks.push(buildCss(inputPath, [path.join(siteSrc, '_includes', 'css', baseName)]));
   }
 
-  const componentCssFiles = await fg(['src/assets/css/components/**/*.css']);
+  // Component CSS -> site output (static asset)
+  const componentCssFiles = await fg([path.join(coreAssetsCss, 'components', '**/*.css')]);
   for (const inputPath of componentCssFiles) {
     const baseName = path.basename(inputPath);
-    tasks.push(buildCss(inputPath, [`dist/assets/css/components/${baseName}`]));
+    tasks.push(buildCss(inputPath, [path.join(outDir, 'assets', 'css', 'components', baseName)]));
   }
 
   await Promise.all(tasks);
