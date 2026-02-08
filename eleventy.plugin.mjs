@@ -71,6 +71,25 @@ const hasSiteLayoutOverride = async (siteLayoutsDir, relNoExt) => {
   return false;
 };
 
+const syncCoreLayoutsIntoSite = async ({ coreLayoutsDir, siteLayoutsDir, namespace }) => {
+  const targetDir = path.join(siteLayoutsDir, namespace);
+
+  // Always regenerate the namespace folder so it never drifts.
+  try {
+    await fs.rm(targetDir, { recursive: true, force: true });
+  } catch {
+    // ignore
+  }
+
+  await fs.mkdir(targetDir, { recursive: true });
+
+  // Copy core layouts into the site's layouts namespace folder.
+  // fs.cp is available in modern Node versions (including Cloudflare Pages).
+  await fs.cp(coreLayoutsDir, targetDir, { recursive: true });
+
+  return targetDir;
+};
+
 /**
  * Eleventy Excellent Core (theme-like) plugin.
  *
@@ -101,6 +120,10 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
     // Automatically register layout aliases for layouts shipped by the core package.
     // This lets consuming sites use `layout: <name>` without extra Eleventy config.
     autoRegisterLayoutAliases: true,
+
+    // Where core layouts will be copied inside the consuming site's layouts dir.
+    // Example: src/_layouts/__ee_core/<layout files>
+    coreLayoutsNamespace: '__ee_core',
 
     // Whether to run svgToJpeg after build when serving.
     enableSvgToJpegOnServe: true,
@@ -153,13 +176,19 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   }
 
   // --------------------- Layout aliases (theme-like layouts)
-  // Eleventy layout resolution does not use Nunjucks/Liquid includePaths.
-  // Register aliases so `layout: <name>` works with core-provided layouts.
-  // Site overrides (src/_layouts/...) take precedence: if a site defines a matching layout,
+  // Eleventy layout resolution does NOT use Nunjucks/Liquid includePaths.
+  // The most reliable cross-environment approach is:
+  // 1) Copy core layouts into the consuming site's layouts dir under a namespace folder
+  // 2) Register layout aliases that point at those copied templates
+  // Site overrides (src/_layouts/...) take precedence: if a site defines a matching layout name,
   // we do not alias that key to core.
+  let coreLayoutsNamespaceDir = null;
   if (options.autoRegisterLayoutAliases) {
     const siteLayoutsDir = path.join(siteSrc, '_layouts');
     const coreLayoutsDir = path.join(coreSrc, '_layouts');
+
+    // Copy happens at build time (eleventy.before). Here we just compute alias mappings.
+    coreLayoutsNamespaceDir = path.join(siteLayoutsDir, options.coreLayoutsNamespace);
 
     const coreLayoutFiles = await fg(['**/*.{njk,liquid,html,md}', '**/*.11ty.js'], {
       cwd: coreLayoutsDir,
@@ -175,15 +204,12 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
         continue;
       }
 
-      // Eleventy layout keys use forward slashes.
+      // Layout keys and targets must use forward slashes.
       const layoutKey = relNoExt.split(path.sep).join('/');
-
-      // Use a project-relative path so Eleventy can resolve it consistently across environments.
-      const fullPath = path.join(coreLayoutsDir, rel);
-      const projectRelativePath = path.relative(process.cwd(), fullPath).split(path.sep).join('/');
+      const aliasTarget = `${options.coreLayoutsNamespace}/${rel.split(path.sep).join('/')}`;
 
       try {
-        eleventyConfig.addLayoutAlias(layoutKey, projectRelativePath);
+        eleventyConfig.addLayoutAlias(layoutKey, aliasTarget);
       } catch {
         // ignore
       }
@@ -191,13 +217,24 @@ export default async function eleventyExcellentCore(eleventyConfig, opts = {}) {
   }
 
   // --------------------- Events: before build
-  if (options.enableBuildPipeline) {
-    eleventyConfig.on('eleventy.before', async () => {
+  eleventyConfig.on('eleventy.before', async () => {
+    // Keep core layouts in sync inside the consuming site's layouts directory.
+    if (options.autoRegisterLayoutAliases) {
+      const siteLayoutsDir = path.join(siteSrc, '_layouts');
+      const coreLayoutsDir = path.join(coreSrc, '_layouts');
+      await syncCoreLayoutsIntoSite({
+        coreLayoutsDir,
+        siteLayoutsDir,
+        namespace: options.coreLayoutsNamespace
+      });
+    }
+
+    if (options.enableBuildPipeline) {
       // Build core CSS/JS into the *site* includes/output.
       await events.buildAllCss({ coreSrc, siteSrc, outDir });
       await events.buildAllJs({ coreSrc, siteSrc, outDir });
-    });
-  }
+    }
+  });
 
   // --------------------- Watch targets
   // Use forward-slash globs for reliable cross-platform watching.
