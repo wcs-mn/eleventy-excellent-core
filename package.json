@@ -4,6 +4,24 @@
   "description": "Shared Eleventy Excellent core packaged as an Eleventy plugin (theme-like overrides via template search paths).",
   "license": "ISC",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wcs-mn/eleventy-excellent-core.git"
+  },
+  "keywords": [
+    "eleventy",
+    "11ty",
+    "theme",
+    "plugin",
+    "tailwind",
+    "webc"
+  ],
   "exports": {
     ".": "./index.mjs",
     "./plugin": "./eleventy.plugin.mjs",
@@ -19,12 +37,14 @@
     "README.md"
   ],
   "peerDependencies": {
-    "@11ty/eleventy": "^3.1.0",
+    "@11ty/eleventy": "^3.1.0"
+  },
+  "dependencies": {
     "@11ty/eleventy-fetch": "^5.1.0",
     "@11ty/eleventy-img": "^6.0.0",
+    "@11ty/eleventy-plugin-bundle": "^3.0.7",
     "@11ty/eleventy-plugin-rss": "^2.0.0",
     "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0",
-    "@11ty/eleventy-plugin-bundle": "^3.0.7",
     "@11ty/eleventy-plugin-webc": "^0.11.0",
     "@11ty/is-land": "^4.0.0",
     "autoprefixer": "^10.4.0",
