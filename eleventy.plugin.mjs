@@ -18,6 +18,12 @@ export function coreSrcPath() {
   return path.resolve(__dirname, 'src');
 }
 
+// Back-compat / public API: sites expect `corePaths`.
+// Keep `coreSrcPath()` as the canonical implementation.
+export function corePaths() {
+  return coreSrcPath();
+}
+
 /**
  * Eleventy Excellent Core (theme-like) plugin.
  *
