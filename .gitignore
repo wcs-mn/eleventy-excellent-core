@@ -1,0 +1,79 @@
+###################################
+# OS files
+###################################
+
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+###################################
+# Node / npm
+###################################
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+###################################
+# Environment variables
+###################################
+
+.env
+.env.local
+.env.*.local
+
+###################################
+# Build output (Eleventy)
+###################################
+
+_site/
+dist/
+public/
+build/
+
+###################################
+# Eleventy cache
+###################################
+
+.eleventy-cache/
+.eleventy.js.map
+
+###################################
+# Generated assets (if applicable)
+###################################
+
+assets/css/*.min.css
+assets/js/*.min.js
+
+###################################
+# Logs
+###################################
+
+logs
+*.log
+
+###################################
+# Editor folders
+###################################
+
+.vscode/
+.idea/
+
+###################################
+# macOS metadata inside folders
+###################################
+
+**/.DS_Store
+
+###################################
+# Optional: package manager cache
+###################################
+
+.pnpm-store/
+.cache/
