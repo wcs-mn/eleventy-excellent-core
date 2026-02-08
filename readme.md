@@ -1,4 +1,4 @@
-# @kaiano/eleventy-core
+# @wcs-mn/eleventy-excellent-core
 
 This package is a shared "core layer" based on Eleventy Excellent. It contains:
 - `src/_includes`, `src/_layouts`
@@ -12,9 +12,9 @@ It is designed to be used by multiple sites with **site-specific overrides**.
 In a consuming site repo:
 
 1) Install the package (from npm, GitHub, or a workspace):
-   - npm: `npm i @kaiano/eleventy-core`
-   - GitHub: `npm i github:kaianolevine/eleventy-core`
-   - workspace: `npm i ../path/to/kaiano-eleventy-core`
+   - npm: `npm i @wcs-mn/eleventy-excellent-core`
+   - GitHub: `npm i github:wcs-mn/eleventy-excellent-core`
+   - workspace: `npm i ../path/to/wcs-mn-eleventy-excellent-core`
 
 2) Add a site layer folder:
    - `src/site/_includes` (optional overrides/additions)
@@ -22,7 +22,7 @@ In a consuming site repo:
    - `src/site/assets/...` (site-only widgets/scripts/styles)
 
 3) Run the prepare step before Eleventy:
-   - `node ./node_modules/@kaiano/eleventy-core/scripts/prepare-core.mjs`
+   - `node ./node_modules/@wcs-mn/eleventy-excellent-core/scripts/prepare-core.mjs`
 
 This generates:
 - `src/_core/*`   (a copy of the package’s `src`)

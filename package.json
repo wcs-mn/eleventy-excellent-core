@@ -1,5 +1,5 @@
 {
-  "name": "@kaiano/eleventy-core",
+  "name": "@wcs-mn/eleventy-excellent-core",
   "version": "0.1.0",
   "description": "Shared Eleventy Excellent-based core (layouts, includes, assets, config) for Kaiano's sites.",
   "type": "module",
