@@ -1,5 +1,35 @@
 import Image from '@11ty/eleventy-img';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const resolveImagePath = (src) => {
+  // Absolute URLs: let eleventy-img handle remote fetching
+  if (typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'))) {
+    return src;
+  }
+
+  // Normalize leading "./" and leading "/"
+  const normalized = typeof src === 'string'
+    ? src.replace(/^\.\//, '').replace(/^\//, '')
+    : src;
+
+  // Site first: <site>/src/<normalized>
+  const sitePath = path.resolve(process.cwd(), 'src', normalized);
+  if (existsSync(sitePath)) return sitePath;
+
+  // Core fallback: <core>/src/<normalized>
+  // This file lives at <core>/src/_config/shortcodes/image.js
+  const coreSrcRoot = path.resolve(__dirname, '..', '..');
+  const corePath = path.resolve(coreSrcRoot, normalized);
+  if (existsSync(corePath)) return corePath;
+
+  // Default to the site path for a clearer error downstream
+  return sitePath;
+};
 
 const stringifyAttributes = attributeMap => {
   return Object.entries(attributeMap)
@@ -33,12 +63,7 @@ const processImage = async options => {
     sizes = loading === 'lazy' ? 'auto' : '100vw';
   }
 
-  // Prepend "./src" if not present
-  if (!src.startsWith('./src')) {
-    src = `./src${src}`;
-  }
-
-  const metadata = await Image(src, {
+  const metadata = await Image(resolveImagePath(src), {
     widths: [...widths],
     formats: [...formats],
     urlPath: '/assets/images/',
