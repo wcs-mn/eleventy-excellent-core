@@ -19,4 +19,6 @@
   <div slot="content" webc:nokeep>{{ item.data.description | markdownFormat | safe }}</div>
 </custom-card>
 
-<link rel="stylesheet" href="/assets/core/css/local/custom-card.css">
+{% css "local" %}
+  {% include "css/custom-card.css" %}
+{% endcss %}

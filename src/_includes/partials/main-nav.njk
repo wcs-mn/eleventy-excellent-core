@@ -73,10 +73,17 @@
     </button>
   </template>
 
-  <link rel="stylesheet" href="/assets/core/css/local/nav-main-drawer-cls.css">
-<script type="module" src="/assets/core/scripts/nav-drawer.js"></script>
+  {% css "local" %}
+    {% include "css/nav-main-drawer-cls.css" %}
+  {% endcss %}
+
+  {% js "defer" %}
+    {% include "scripts/nav-drawer.js" %}
+  {% endjs %}
 {% endif %}
 
 {% if subMenu %}
-  <script type="module" src="/assets/core/scripts/nav-sub.js"></script>
+  {% js "defer" %}
+    {% include "scripts/nav-sub.js" %}
+  {% endjs %}
 {% endif %}
