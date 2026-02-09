@@ -19,11 +19,6 @@
     {%- endfor -%}
   </div>
 
-  {% css "local" %}
-    {% include "css/gallery.css" %}
-  {% endcss %}
-
-  {% js "defer" %}
-    {% include "scripts/dialog.js" %}
-  {% endjs %}
+  <link rel="stylesheet" href="/assets/core/css/local/gallery.css">
+<script type="module" src="/assets/core/scripts/dialog.js"></script>
 </is-land>

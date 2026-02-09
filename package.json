@@ -1,33 +1,48 @@
 {
   "name": "@wcs-mn/ee-core",
   "version": "0.1.0",
-  "description": "Packaged Eleventy Excellent core: templates, assets, and an Eleventy plugin for multi-site reuse.",
+  "description": "Shared Eleventy Excellent core packaged as an Eleventy plugin (theme-like overrides via template search paths).",
   "license": "ISC",
   "type": "module",
-  "exports": {
-    ".": "./plugin.mjs",
-    "./plugin": "./plugin.mjs",
-    "./tailwind-preset": "./tailwind.preset.cjs",
-    "./package.json": "./package.json",
-    "./tailwind-config": "./tailwind.config.js"
-  },
-  "files": [
-    "src/**",
-    "plugin.mjs",
-    "tailwind.preset.cjs",
-    "README.md",
-    "LICENSE.MD",
-    "tailwind.config.js"
-  ],
   "engines": {
     "node": ">=20"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wcs-mn/eleventy-excellent-core.git"
+  },
+  "keywords": [
+    "eleventy",
+    "11ty",
+    "theme",
+    "plugin",
+    "tailwind",
+    "webc"
+  ],
+  "exports": {
+    ".": "./index.mjs",
+    "./plugin": "./eleventy.plugin.mjs",
+    "./package.json": "./package.json",
+    "./tailwind-preset": "./tailwind.preset.cjs"
+  },
+  "files": [
+    "src/**",
+    "index.mjs",
+    "eleventy.plugin.mjs",
+    "tailwind.preset.cjs",
+    "LICENSE.MD",
+    "README.md"
+  ],
   "peerDependencies": {
     "@11ty/eleventy": "^3.1.0"
   },
   "dependencies": {
     "@11ty/eleventy-fetch": "^5.1.0",
     "@11ty/eleventy-img": "^6.0.0",
+    "@11ty/eleventy-plugin-bundle": "^3.0.7",
     "@11ty/eleventy-plugin-rss": "^2.0.0",
     "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0",
     "@11ty/eleventy-plugin-webc": "^0.11.0",
@@ -45,28 +60,6 @@
     "postcss-import": "^16.0.0",
     "postcss-import-ext-glob": "^2.1.0",
     "sharp": "^0.34.0",
-    "tailwindcss": "^3.4.0",
-    "@toycode/markdown-it-class": "^1.2.4",
-    "colorjs.io": "^0.6.1",
-    "cross-env": "^10.1.0",
-    "dayjs": "^1.11.19",
-    "html-minifier-terser": "^7.2.0",
-    "markdown-it-abbr": "^2.0.0",
-    "markdown-it-anchor": "^9.2.0",
-    "markdown-it-attrs": "^4.3.1",
-    "markdown-it-emoji": "^3.0.0",
-    "markdown-it-footnote": "^4.0.0",
-    "markdown-it-link-attributes": "^4.0.1",
-    "markdown-it-mark": "^4.0.0",
-    "markdown-it-prism": "^3.0.1",
-    "netlify-plugin-cache": "^1.0.3",
-    "pa11y-ci": "^4.0.1",
-    "postcss-js": "^5.0.3",
-    "prettier-plugin-jinja-template": "^2.1.0",
-    "rimraf": "^6.1.2",
-    "sanitize-html": "^2.17.0",
-    "sharp-ico": "^0.1.5",
-    "slugify": "^1.6.6",
-    "svgo": "^4.0.0"
+    "tailwindcss": "^3.4.0"
   }
 }

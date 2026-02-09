@@ -1,9 +1,14 @@
-/**
- * @wcs-mn/ee-core Tailwind preset (CJS).
- *
- * Recommended: use ESM and import the full config:
- *   import corePreset from '@wcs-mn/ee-core/tailwind-config';
- *
- * If you MUST use CJS, copy the config into your project or convert your Tailwind config to ESM.
- */
-module.exports = {};
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  theme: {
+    extend: {
+      screens: {
+        // Required by core styles
+        navigation: "1024px",
+
+        // Existing core breakpoint
+        ltsm: { max: "639px" }
+      }
+    }
+  }
+};
