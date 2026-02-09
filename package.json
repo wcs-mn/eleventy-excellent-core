@@ -55,7 +55,7 @@
     "js-yaml": "^4.1.0",
     "lite-youtube-embed": "^0.3.0",
     "markdown-it": "^14.0.0",
-    "markdown-it-prism": "^4.1.0",
+    "markdown-it-prism": "^3.0.1",
     "postcss": "^8.5.0",
     "postcss-cli": "^11.0.0",
     "postcss-import": "^16.0.0",
